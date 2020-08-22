@@ -1,7 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+const _ = require('lodash');
 const app = express();
 
 app.set("view engine", "ejs");
@@ -68,54 +69,79 @@ app.get("/", function (req, res) {
 
 app.post("/", function (req, res) {
   const itemName = req.body.newItem;
+  const listName = req.body.listAdd;
+  let day = date();
 
   const item = new Item({
     name: itemName
   });
 
-  item.save();
-  
-  res.redirect('/');
+  if (listName == day) {
+    item.save();
+    res.redirect('/');
+  } else {
+    List.findOne({name: listName}, function (err, foundList) {
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect('/' + listName);
+    })
+  }
+
 });
 
 app.post('/delete', function (req, res) {
   const checkedItemId = req.body.checkbox;
+  const listName = req.body.listName;
+  let day = date();
 
-  Item.findByIdAndRemove(checkedItemId, function (err) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log('Todo List Item Deleted');
-    };
-  });
+  if (listName == day) {
+    Item.findByIdAndRemove(checkedItemId, function (err) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log('Todo List Item Deleted');
+      };
+    });
 
-  res.redirect('/');
+    res.redirect('/');
+  } else {
+    List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedItemId}}}, function (err, foundList) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log('Custom Todo List Item Deleted');
+        res.redirect('/' + listName);
+      }
+    })
+  }
+
+  
 });
 
 app.get("/:customListName", function (req, res) {
-  const customListName = req.params.customListName;
+  const customListName = _.capitalize(req.params.customListName);
 
   List.findOne({name: customListName}, function (err, foundList) {
     if (!err) {
-      console.log('test1');
-      if (!foundList) {
+      console.log('no error');
+      if (foundList) {
+        console.log("list found");
+        res.render('list', {
+          listTitle: foundList.name,
+          newListItems: foundList.items
+        });
+        console.log('/' + customListName);
+      } else {
         const list = new List ({
           name: customListName,
           items: defaultItems
         });
 
-        console.log('test');
+        console.log('not found');
 
         list.save();
         console.log('/' + customListName);
         res.redirect("/" + customListName);
-
-      } else {
-        console.log("2");
-        res.render('list', {
-          listTitle: foundList.name,
-          newListItems: foundList.items
-        });
       }
     } else {
       console.log(err);
