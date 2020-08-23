@@ -123,24 +123,19 @@ app.get("/:customListName", function (req, res) {
 
   List.findOne({name: customListName}, function (err, foundList) {
     if (!err) {
-      console.log('no error');
       if (foundList) {
-        console.log("list found");
         res.render('list', {
           listTitle: foundList.name,
           newListItems: foundList.items
         });
-        console.log('/' + customListName);
       } else {
         const list = new List ({
           name: customListName,
           items: defaultItems
         });
 
-        console.log('not found');
 
         list.save();
-        console.log('/' + customListName);
         res.redirect("/" + customListName);
       }
     } else {
@@ -151,8 +146,13 @@ app.get("/:customListName", function (req, res) {
 
 app.get("/about", function (req, res) {
   res.render("about");
-})
+});
 
-app.listen(3000, function () {
-  console.log("Server started on port 3000");
+let port = process.env.PORT;
+if (port == null || port = '') {
+  port = 3000;
+}
+
+app.listen(port, function () {
+  console.log("Server started on port" + port);
 });
